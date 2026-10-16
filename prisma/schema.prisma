@@ -1,0 +1,282 @@
+// Esquema de datos de La Universal.
+// Los montos de dinero se guardan en centavos (Int) para evitar errores de redondeo.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String
+  nameEn    String    @default("") // nombre en inglés (vacío = se muestra el de español)
+  slug      String    @unique
+  emoji     String    @default("🛒")
+  sortOrder Int       @default(0)
+  active     Boolean     @default(true)
+  products   Product[]
+  promotions Promotion[]
+  createdAt  DateTime    @default(now())
+}
+
+model Product {
+  id                Int             @id @default(autoincrement())
+  name              String
+  nameEn            String          @default("") // en inglés; vacío = se muestra en español
+  slug              String          @unique
+  description       String          @default("")
+  descriptionEn     String          @default("")
+  sku               String?         @unique
+  price             Int // centavos
+  compareAtPrice    Int? // precio anterior, para mostrar ofertas
+  unit              String          @default("pieza")
+  stock             Int             @default(0)
+  lowStockThreshold Int             @default(5)
+  imageUrl          String?
+  active            Boolean         @default(true)
+  featured          Boolean         @default(false)
+  categoryId        Int?
+  category          Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  orderItems        OrderItem[]
+  stockMovements    StockMovement[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([categoryId])
+}
+
+enum StockReason {
+  SALE // venta (pedido en línea o mostrador)
+  RESTOCK // entrada de mercancía
+  ADJUSTMENT // ajuste manual (merma, conteo)
+  CANCEL // devolución por pedido cancelado
+}
+
+model StockMovement {
+  id        Int         @id @default(autoincrement())
+  productId Int
+  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  change    Int // positivo = entra, negativo = sale
+  stockAfter Int
+  reason    StockReason
+  note      String      @default("")
+  orderId   Int?
+  createdAt DateTime    @default(now())
+
+  @@index([productId, createdAt])
+}
+
+enum OrderStatus {
+  PENDING // recibido, falta confirmar
+  CONFIRMED
+  PREPARING
+  READY // listo para recoger / salir
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum DeliveryType {
+  PICKUP
+  DELIVERY
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+}
+
+enum OrderChannel {
+  ONLINE // pedido desde la tienda web
+  COUNTER // venta de mostrador registrada en el panel
+  WHATSAPP // pedido tomado por el bot de WhatsApp
+}
+
+model Order {
+  id            Int           @id @default(autoincrement())
+  publicToken   String        @unique // permite al cliente consultar su pedido sin cuenta
+  channel       OrderChannel  @default(ONLINE)
+  status        OrderStatus   @default(PENDING)
+  customerName  String
+  phone         String        @default("")
+  email         String        @default("")
+  deliveryType  DeliveryType  @default(PICKUP)
+  address       String        @default("")
+  notes         String        @default("")
+  paymentMethod PaymentMethod @default(CASH)
+  cashGivenWith Int? // con cuánto paga, para llevar cambio
+  recipientName String        @default("") // quién recibe, si el pedido es para otra persona
+  locale        String        @default("es") // idioma del cliente: avisos y seguimiento en ese idioma
+  customerId    Int?
+  customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  subtotal       Int
+  discount       Int           @default(0) // suma de promociones aplicadas
+  discountDetail String        @default("") // JSON [{ name, amount }] para mostrar el desglose
+  deliveryFee    Int           @default(0)
+  total          Int
+  items         OrderItem[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([status, createdAt])
+  @@index([createdAt])
+  @@index([customerId])
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  name      String // copia del nombre al momento de la venta
+  unitPrice Int
+  quantity  Int
+  lineTotal Int
+}
+
+// Una sola fila (id = 1) con la configuración editable de la tienda.
+model Settings {
+  id              Int     @id @default(1)
+  storeName       String  @default("Abarrotes La Universal")
+  tagline         String  @default("Todo lo de tu despensa, cerca de ti")
+  announcement    String  @default("")
+  heroTitle       String  @default("Tu tiendita de confianza, ahora en línea")
+  heroSubtitle    String  @default("Haz tu pedido y pásalo a recoger o te lo llevamos a casa.")
+  phone           String  @default("")
+  whatsapp        String  @default("")
+  email           String  @default("")
+  address         String  @default("")
+  hours           String  @default("Lunes a domingo, 7:00 a 22:00")
+  acceptingOrders Boolean @default(true)
+  pickupEnabled   Boolean @default(true)
+  deliveryEnabled Boolean @default(true)
+  deliveryFee     Int     @default(3000)
+  freeDeliveryMin Int     @default(30000) // 0 = nunca gratis
+  minOrder        Int     @default(0)
+  deliveryArea    String  @default("Colonias cercanas a la tienda")
+
+  // Textos de la tienda en inglés (vacío = se muestra el de español)
+  taglineEn      String @default("")
+  announcementEn String @default("")
+  heroTitleEn    String @default("")
+  heroSubtitleEn String @default("")
+  hoursEn        String @default("")
+  deliveryAreaEn String @default("")
+
+  // Datos para pago por transferencia (se muestran al cliente al elegir "Transferencia")
+  bankName          String @default("")
+  bankAccountHolder String @default("") // titular de la cuenta
+  bankAccount       String @default("") // número de cuenta
+  bankClabe         String @default("") // CLABE interbancaria (18 dígitos)
+  bankCard          String @default("") // tarjeta de débito para depósitos o transferencias
+  bankNote          String @default("") // indicaciones, p. ej. "manda tu comprobante por WhatsApp"
+
+  // WhatsApp
+  botEnabled       Boolean @default(true) // el bot contesta y toma pedidos
+  botInstructions  String  @default("") // indicaciones extra para el bot (promociones, avisos…)
+  notifyCustomers  Boolean @default(true) // avisar al cliente cuando cambia su pedido
+  notifyStore      Boolean @default(true) // avisar a la tienda de pedidos nuevos
+  storeNotifyPhone String  @default("") // WhatsApp que recibe los avisos de pedidos nuevos
+}
+
+model AdminUser {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+enum MessageDirection {
+  IN // del cliente a la tienda
+  OUT // de la tienda al cliente
+}
+
+enum MessageSender {
+  CUSTOMER
+  BOT
+  STAFF // alguien de la tienda desde el panel
+  SYSTEM // avisos automáticos (estado del pedido, etc.)
+}
+
+// Conversación con un cliente: por WhatsApp o por el chat de la página web.
+model WhatsAppConversation {
+  id            Int               @id @default(autoincrement())
+  channel       String            @default("whatsapp") // "whatsapp" | "web"
+  webToken      String?           @unique // llave secreta del navegador, solo en chats web
+  waId          String            @unique // número tal como lo manda WhatsApp (p. ej. 5215512345678); en web "web-…"
+  phoneKey      String // últimos 10 dígitos, para relacionarlo con el teléfono de los pedidos web
+  name          String            @default("")
+  botPaused     Boolean           @default(false) // una persona tomó la conversación
+  draft         String            @default("{}") // carrito y datos de entrega en curso (JSON)
+  unread        Int               @default(0)
+  lastInboundAt DateTime? // la API solo permite texto libre 24 h después del último mensaje del cliente
+  lastMessageAt DateTime          @default(now())
+  messages      WhatsAppMessage[]
+  createdAt     DateTime          @default(now())
+
+  @@index([phoneKey])
+  @@index([lastMessageAt])
+}
+
+model WhatsAppMessage {
+  id             Int                  @id @default(autoincrement())
+  conversationId Int
+  conversation   WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  direction      MessageDirection
+  sender         MessageSender
+  body           String
+  waMessageId    String?              @unique
+  meta           String               @default("") // JSON extra para el chat web (cotización, pedido confirmado…)
+  status         String               @default("") // sent, delivered, read, failed, simulado, omitido, web
+  error          String               @default("")
+  createdAt      DateTime             @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+// Cliente identificado por su número de WhatsApp (o el teléfono que dejó en la web).
+model Customer {
+  id        Int               @id @default(autoincrement())
+  phoneKey  String            @unique // últimos 10 dígitos
+  waId      String            @default("")
+  name      String            @default("") // cómo le gusta que le llamen
+  addresses CustomerAddress[]
+  orders    Order[]
+  createdAt DateTime          @default(now())
+}
+
+// Direcciones que el cliente ha usado. Se le ofrecen, pero cada pedido a domicilio pregunta a dónde va.
+model CustomerAddress {
+  id         Int      @id @default(autoincrement())
+  customerId Int
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  address    String
+  lastUsedAt DateTime @default(now())
+
+  @@unique([customerId, address])
+}
+
+// Promociones administrables. Se aplican solas en las cotizaciones y pedidos (web y WhatsApp).
+model Promotion {
+  id             Int       @id @default(autoincrement())
+  name           String // lo que ve el cliente, p. ej. "15% pagando con tarjeta o transferencia"
+  nameEn         String    @default("")
+  active         Boolean   @default(true)
+  kind           String    @default("PERCENT") // PERCENT (porcentaje) | FIXED (monto fijo en centavos)
+  value          Int // porcentaje (1-100) o centavos
+  paymentMethods String    @default("") // "CARD,TRANSFER"; vacío = cualquier forma de pago
+  deliveryType   String    @default("") // "" = cualquiera, "PICKUP" o "DELIVERY"
+  minSubtotal    Int       @default(0) // centavos; 0 = sin mínimo
+  categoryId     Int? // si se indica, solo descuenta productos de esa categoría
+  category       Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  weekdays       String    @default("") // "2,4" (0 = domingo); vacío = todos los días
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+}

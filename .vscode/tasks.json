@@ -1,0 +1,30 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Preparar proyecto (primera vez)",
+      "detail": "Instala dependencias, crea la base de datos y carga los datos de ejemplo",
+      "type": "shell",
+      "command": "npm install && npm run db:migrate && npm run db:seed",
+      "windows": { "options": { "shell": { "executable": "cmd.exe", "args": ["/d", "/c"] } } },
+      "problemMatcher": []
+    },
+    {
+      "label": "Reiniciar base de datos",
+      "detail": "Borra todo y vuelve a cargar los datos de ejemplo",
+      "type": "shell",
+      "command": "npm run db:reset",
+      "windows": { "options": { "shell": { "executable": "cmd.exe", "args": ["/d", "/c"] } } },
+      "problemMatcher": []
+    },
+    {
+      "label": "Abrir Prisma Studio",
+      "detail": "Ver y editar la base de datos en el navegador",
+      "type": "shell",
+      "command": "npm run db:studio",
+      "windows": { "options": { "shell": { "executable": "cmd.exe", "args": ["/d", "/c"] } } },
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}
