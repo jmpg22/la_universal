@@ -28,7 +28,6 @@ const es = {
     contact: "Contacto",
     phone: "Tel.",
     whatsapp: "Escríbenos por WhatsApp",
-    admin: "Acceso administración",
   },
   home: {
     seeProducts: "Ver productos",
@@ -302,7 +301,6 @@ const en: Dictionary = {
     contact: "Contact",
     phone: "Phone",
     whatsapp: "Message us on WhatsApp",
-    admin: "Staff login",
   },
   home: {
     seeProducts: "Shop now",

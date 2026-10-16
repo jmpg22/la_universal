@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getI18n } from "@/lib/i18n/server";
 import { getSettings } from "@/lib/store-data";
 import { whatsappLink } from "@/lib/whatsapp";
@@ -63,10 +62,7 @@ export async function StoreFooter() {
         </div>
       </div>
       <div className="relative border-t border-white/10 py-5 text-center text-xs text-brand-300">
-        © {s.storeName} ·{" "}
-        <Link href="/admin" className="hover:text-white">
-          {t.footer.admin}
-        </Link>
+        © {s.storeName}
       </div>
     </footer>
   );
