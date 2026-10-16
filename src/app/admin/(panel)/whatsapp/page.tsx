@@ -214,7 +214,7 @@ export default async function WhatsAppPage({ searchParams }: PageProps<"/admin/w
                     <h3 className="mb-2 font-extrabold">Cliente</h3>
                     {customer?.name ? (
                       <p>
-                        Le gusta que le llamen <span className="font-bold">{customer.name}</span>
+                        Nombre: <span className="font-bold">{customer.name}</span>
                       </p>
                     ) : (
                       <p className="text-stone-500">Aún no se registra (el bot le preguntará su nombre).</p>

@@ -9,7 +9,7 @@ export async function findCustomer(phone: string) {
   });
 }
 
-/** Registra (o actualiza) cómo le gusta al cliente que le llamen. */
+/** Registra (o actualiza) el nombre del cliente. */
 export async function saveCustomerName(waId: string, name: string) {
   const key = phoneKey(waId);
   return db.customer.upsert({

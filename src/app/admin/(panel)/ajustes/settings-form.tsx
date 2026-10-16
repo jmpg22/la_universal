@@ -74,6 +74,12 @@ export function SettingsForm({ settings: s }: { settings: StoreSettings }) {
       <section className="card space-y-4 p-5">
         <h2 className="font-extrabold">Portada</h2>
         <Text name="announcement" label="Aviso en la barra superior" value={s.announcement} hint="Déjalo vacío para no mostrar aviso." placeholder="Ej. 🎉 Martes de frutas y verduras" />
+        <Toggle
+          name="announcementFromPromos"
+          checked={s.announcementFromPromos}
+          label="Mostrar en el aviso las promociones activas"
+          hint="Si está activo y hay promociones, el aviso las muestra solo (y se actualiza cuando las cambias). Si no hay promociones, se muestra el texto de arriba."
+        />
         <Text name="heroTitle" label="Título principal" value={s.heroTitle} />
         <Text name="heroSubtitle" label="Texto bajo el título" value={s.heroSubtitle} area />
       </section>
@@ -122,6 +128,35 @@ export function SettingsForm({ settings: s }: { settings: StoreSettings }) {
           <Text name="bankClabe" label="CLABE interbancaria" value={s.bankClabe} hint="18 dígitos, para transferencias desde otros bancos." />
           <Text name="bankCard" label="Tarjeta de débito" value={s.bankCard} hint="16 dígitos, para depósitos en OXXO o transferencias a tarjeta." />
           <Text name="bankNote" label="Indicación para el cliente (opcional)" value={s.bankNote} placeholder="Ej. Manda tu comprobante por WhatsApp con tu número de pedido." />
+        </div>
+      </section>
+
+      <section className="card space-y-4 p-5 lg:col-span-2">
+        <div>
+          <h2 className="font-extrabold">🤖 Asistente de pedidos</h2>
+          <p className="text-sm text-stone-500">
+            Lo que dice el asistente en el chat de la página y en WhatsApp. Si un cliente escribe en inglés, el asistente traduce estas preguntas solo.
+          </p>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Text
+            name="chatWelcome"
+            label="Saludo del chat de la página"
+            value={s.chatWelcome}
+            area
+            placeholder="¡Hola! 👋 Soy el asistente de la tienda. Escríbeme tu lista como quieras y te armo el pedido con precios."
+            hint="Déjalo vacío para usar el saludo de siempre."
+          />
+          <Text name="chatWelcomeEn" label="Saludo en inglés" value={s.chatWelcomeEn} area hint="Se traduce solo si lo dejas vacío." />
+          <Text name="botAskName" label="Pregunta del nombre" value={s.botAskName} />
+          <Text name="botAskPhone" label="Pregunta del teléfono" value={s.botAskPhone} />
+          <Text name="botAskDelivery" label="Pregunta de la entrega" value={s.botAskDelivery} />
+          <Text
+            name="botAskPayment"
+            label="Pregunta del pago"
+            value={s.botAskPayment}
+            hint="El descuento por forma de pago (p. ej. “Con transferencia tienes 10% de descuento.”) se agrega solo según tus Promociones."
+          />
         </div>
       </section>
 

@@ -48,6 +48,12 @@ const schema = z.object({
   heroSubtitleEn: text(300),
   hoursEn: text(200),
   deliveryAreaEn: text(200),
+  chatWelcome: text(400),
+  chatWelcomeEn: text(400),
+  botAskName: text(160).min(3, "Escribe la pregunta del nombre"),
+  botAskPhone: text(160).min(3, "Escribe la pregunta del teléfono"),
+  botAskDelivery: text(160).min(3, "Escribe la pregunta de la entrega"),
+  botAskPayment: text(160).min(3, "Escribe la pregunta del pago"),
 });
 
 // Pares español → inglés de los textos de la tienda.
@@ -58,6 +64,7 @@ const EN_PAIRS = [
   ["heroSubtitle", "heroSubtitleEn"],
   ["hours", "hoursEn"],
   ["deliveryArea", "deliveryAreaEn"],
+  ["chatWelcome", "chatWelcomeEn"],
 ] as const;
 
 export async function saveSettings(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
@@ -84,6 +91,7 @@ export async function saveSettings(_prev: SettingsState, formData: FormData): Pr
     botEnabled: formData.get("botEnabled") === "on",
     notifyCustomers: formData.get("notifyCustomers") === "on",
     notifyStore: formData.get("notifyStore") === "on",
+    announcementFromPromos: formData.get("announcementFromPromos") === "on",
   };
   // Si cambió un texto en español y su inglés quedó igual, la traducción vieja ya no sirve.
   const current = await db.settings.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } });

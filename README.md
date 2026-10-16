@@ -3,7 +3,7 @@
 Tienda en línea para la tiendita + panel de administración.
 
 - **Tienda** (`/`): una sola página con el catálogo completo por categoría y precios, búsqueda instantánea y ofertas. Los pedidos se hacen **platicando con un asistente de IA**: el cliente escribe su lista como quiera, el asistente la entiende, le muestra una cotización con el total y el cliente la confirma con un botón. También puede agregar productos con los botones del catálogo. Página de seguimiento del pedido para el cliente.
-- **Panel** (`/admin`): inicio con ventas del día, pedidos en línea (se actualizan solos), venta de mostrador (funciona con lector de código de barras), productos con foto, categorías, inventario (entradas, mermas, conteos e historial), reporte de ventas con descarga en CSV y ajustes de la web (textos, aviso, horarios, contacto, costos de envío y pausar pedidos).
+- **Panel** (`/admin`): inicio con ventas del día, pedidos en línea (se actualizan solos), venta de mostrador (funciona con lector de código de barras), **corte de caja**, productos con foto, categorías, promociones, inventario (entradas, mermas, conteos e historial), **ventas de hoy, semana y mes** comparadas con el periodo anterior, **productos más y menos vendidos**, conversaciones (página y WhatsApp) y ajustes de la web (textos, aviso, horarios, contacto, costos de envío, datos bancarios, preguntas del asistente y pausar pedidos).
 
 Hecho con Next.js 16, Prisma 7 y SQLite, con Tailwind CSS.
 
@@ -117,6 +117,22 @@ Detalles:
 - Para que nadie gaste tu saldo de IA, hay límites: 40 mensajes por hora por chat y 8 chats nuevos por hora por conexión.
 - Las direcciones viejas `/productos`, `/carrito` y `/checkout` llevan al catálogo o abren el chat.
 
+## Corte de caja
+
+En **Panel → 🧮 Corte de caja**:
+
+1. **Abre la caja** con el fondo inicial (el efectivo con el que empiezas).
+2. Durante el día ves en vivo lo cobrado en efectivo, tarjeta y transferencia, y cuánto efectivo debería haber. Registra las **entradas y salidas** de efectivo (pago a proveedor, retiro, cambio…).
+3. Al cerrar, **cuenta el efectivo** y escríbelo: el sistema te dice si cuadra, sobra o falta. Toca *Hacer corte y cerrar caja*.
+
+Cada corte queda guardado (no se puede modificar) con su desglose, los productos vendidos y tus notas, y se puede imprimir. Una venta entra al corte cuando se **cobra**: las de mostrador al registrarlas y los pedidos en línea cuando los marcas como *Entregado*. Los pedidos pendientes de entregar aparecen como aviso.
+
+## Ventas y productos
+
+En **Panel → 📈 Ventas** hay pestañas de **Hoy**, **Esta semana** (desde el lunes), **Este mes** y **Otras fechas**. Cada una muestra lo vendido, el número de ventas y el ticket promedio, comparados con el periodo anterior (ayer, los mismos días de la semana pasada o del mes pasado), además de gráfica, formas de pago, canales y descarga en CSV.
+
+La pestaña **📦 Productos** muestra lo más vendido (por dinero o por piezas), lo que se vende poco y lo que **no se vendió** en el periodo, con la fecha de su última venta y el dinero parado en existencia (buenos candidatos para una promoción).
+
 ## Promociones
 
 En **Panel → Promociones** creas, editas, pausas o eliminas descuentos. Se aplican solos en la cotización del chat, en WhatsApp y en el pedido, y quedan guardados en cada pedido con su desglose.
@@ -127,6 +143,10 @@ Cada promoción tiene:
 - **Condiciones (opcionales):** forma de pago (efectivo, tarjeta, transferencia), días de la semana, una sola categoría (p. ej. 10% en Frutas y verduras los martes), solo para recoger o para envío, y compra mínima.
 
 Si hay varias que aplican, se suman (nunca más que el subtotal). Si el cliente paga de una forma que no tiene descuento, la cotización le avisa cuánto ahorraría pagando de la otra. Las promociones activas aparecen en la portada y el asistente las conoce. El nombre en inglés se traduce solo si lo dejas vacío.
+
+## Textos del asistente
+
+En **Ajustes de la web → 🤖 Asistente de pedidos** cambias el saludo del chat y las preguntas que hace el asistente (nombre, teléfono, entrega y pago) sin tocar el código. El descuento por forma de pago (p. ej. "Con transferencia tienes 10% de descuento.") lo agrega solo según tus promociones. En la sección *Portada* puedes activar que el aviso de arriba muestre automáticamente las promociones activas.
 
 ## Tienda en inglés
 
@@ -145,7 +165,7 @@ El bot usa **Claude** para platicar con el cliente y la **API oficial de WhatsAp
 
 **Cómo atiende el bot:**
 
-- Al cliente lo identifica su número de WhatsApp. La primera vez le pregunta cómo le gusta que le llamen y lo guarda.
+- Al cliente lo identifica su número de WhatsApp. La primera vez le pregunta su nombre y lo guarda.
 - En cada pedido pregunta si lo recoge o lo quiere a domicilio. Solo pide dirección si es a domicilio: le ofrece las que ha usado antes, pero siempre pregunta a cuál enviar, porque puede pedir para otra persona (y en ese caso pregunta quién recibe).
 - Busca en el catálogo real, arma el carrito, muestra el resumen con el total y solo crea el pedido cuando el cliente confirma. El pedido aparece en el panel como cualquier otro, con la etiqueta 💬 WhatsApp.
 - Si el cliente pide hablar con una persona o algo se sale de lo normal, pasa el chat a la tienda. Desde **Panel → WhatsApp** puedes contestar tú y pausar o reactivar el bot por chat.

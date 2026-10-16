@@ -179,6 +179,15 @@ model Settings {
   bankCard          String @default("") // tarjeta de débito para depósitos o transferencias
   bankNote          String @default("") // indicaciones, p. ej. "manda tu comprobante por WhatsApp"
 
+  // Asistente de pedidos: lo que dice al cliente (se editan en Ajustes de la web)
+  chatWelcome           String  @default("") // saludo del chat de la página; vacío = el saludo de siempre
+  chatWelcomeEn         String  @default("")
+  botAskName            String  @default("¿Cuál es tu nombre?")
+  botAskPhone           String  @default("¿Tu teléfono o WhatsApp para avisarte cuando esté listo?")
+  botAskDelivery        String  @default("¿Lo pasas a recoger a la tienda o te lo llevamos a domicilio?")
+  botAskPayment         String  @default("¿Cómo vas a pagar: efectivo, tarjeta o transferencia?")
+  announcementFromPromos Boolean @default(false) // el aviso de arriba muestra las promociones activas
+
   // WhatsApp
   botEnabled       Boolean @default(true) // el bot contesta y toma pedidos
   botInstructions  String  @default("") // indicaciones extra para el bot (promociones, avisos…)
@@ -248,7 +257,7 @@ model Customer {
   id        Int               @id @default(autoincrement())
   phoneKey  String            @unique // últimos 10 dígitos
   waId      String            @default("")
-  name      String            @default("") // cómo le gusta que le llamen
+  name      String            @default("") // nombre del cliente
   addresses CustomerAddress[]
   orders    Order[]
   createdAt DateTime          @default(now())

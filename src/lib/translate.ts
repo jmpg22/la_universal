@@ -50,6 +50,7 @@ const SETTINGS_FIELDS = [
   ["heroSubtitle", "heroSubtitleEn"],
   ["hours", "hoursEn"],
   ["deliveryArea", "deliveryAreaEn"],
+  ["chatWelcome", "chatWelcomeEn"],
 ] as const;
 
 /** Llena todas las traducciones vacías: productos, categorías y textos de la tienda. */

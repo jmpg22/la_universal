@@ -22,6 +22,8 @@ type OrderChatContextValue = {
   busy: boolean;
   error: string;
   storeName: string;
+  /** Saludo del chat escrito en Ajustes; vacío = el saludo de siempre. */
+  welcome: string;
   bank: BankInfo;
   catalog: Map<number, CatalogItem>;
   count: number;
@@ -60,11 +62,13 @@ function saveToken(token: string | null) {
 export function OrderChatProvider({
   children,
   storeName,
+  welcome,
   bank,
   products,
 }: {
   children: React.ReactNode;
   storeName: string;
+  welcome: string;
   bank: BankInfo;
   products: CatalogItem[];
 }) {
@@ -243,6 +247,7 @@ export function OrderChatProvider({
       busy,
       error,
       storeName,
+      welcome,
       bank,
       catalog,
       count: items.reduce((n, i) => n + i.quantity, 0),
@@ -257,7 +262,7 @@ export function OrderChatProvider({
       confirm,
       cancel,
     };
-  }, [state, open, sending, busy, error, storeName, bank, catalog, inputHint, openChat, send, setQty, confirm, cancel]);
+  }, [state, open, sending, busy, error, storeName, welcome, bank, catalog, inputHint, openChat, send, setQty, confirm, cancel]);
 
   return <OrderChatContext value={value}>{children}</OrderChatContext>;
 }

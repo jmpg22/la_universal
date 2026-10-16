@@ -8,7 +8,7 @@ const WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /**
  * El nombre del perfil de WhatsApp solo se usa si el chat aún no tiene nombre:
- * una vez que el cliente se registra, manda el nombre con el que le gusta que le llamen.
+ * una vez que el cliente se registra, manda el nombre que nos dio.
  */
 export async function getOrCreateConversation(waId: string, name?: string) {
   const conversation = await db.whatsAppConversation.upsert({

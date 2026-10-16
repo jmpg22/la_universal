@@ -1,20 +1,23 @@
 import Link from "next/link";
 import { localePath } from "@/lib/i18n/config";
 import { getI18n } from "@/lib/i18n/server";
-import { getSettings } from "@/lib/store-data";
+import { getSettings, getStorePromotions } from "@/lib/store-data";
 import { LanguageSwitch } from "./language-switch";
 import { OpenChatButton } from "./open-chat-button";
 
 export async function StoreHeader() {
   const { lang, t } = await getI18n();
-  const settings = await getSettings(lang);
+  const [settings, promotions] = await Promise.all([getSettings(lang), getStorePromotions(lang)]);
+  // El aviso puede armarse solo con las promociones activas (se elige en Ajustes de la web).
+  const announcement =
+    settings.announcementFromPromos && promotions.length ? `🎁 ${promotions.map((p) => p.name).join(" · ")}` : settings.announcement;
 
   return (
     <header className="sticky top-0 z-30">
       {!settings.acceptingOrders ? (
         <p className="bg-stone-800 px-4 py-2 text-center text-sm font-semibold text-white">{t.header.closed}</p>
-      ) : settings.announcement ? (
-        <p className="bg-sun-400 px-4 py-2 text-center text-sm font-bold text-brand-950">✨ {settings.announcement}</p>
+      ) : announcement ? (
+        <p className="bg-sun-400 px-4 py-2 text-center text-sm font-bold text-brand-950">{announcement.startsWith("🎁") ? announcement : `✨ ${announcement}`}</p>
       ) : null}
 
       <div className="border-b border-black/5 bg-white/85 backdrop-blur-md">

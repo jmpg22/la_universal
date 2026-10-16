@@ -83,7 +83,7 @@ function CurrentOrder() {
 
 export function ChatPanel() {
   const { t } = useI18n();
-  const { state, open, closeChat, send, sending, error, storeName, inputRef, inputHint } = useOrderChat();
+  const { state, open, closeChat, send, sending, error, storeName, welcome, inputRef, inputHint } = useOrderChat();
   const [text, setText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const messages = state?.messages ?? [];
@@ -155,7 +155,7 @@ export function ChatPanel() {
         <div className="flex items-end gap-2">
           <Avatar small />
           <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-white px-4 py-3 text-[15px] leading-relaxed text-stone-800 shadow-sm">
-            {t.chat.welcome(storeName)}
+            {welcome.trim() || t.chat.welcome(storeName)}
           </div>
         </div>
 

@@ -17,7 +17,7 @@ const ERR = {
   es: {
     gone: "La conversación ya no existe.",
     stale: "Tu pedido cambió desde esta cotización. Revisa la cotización nueva.",
-    name: "Falta saber cómo te llamas.",
+    name: "Falta tu nombre.",
     phone: "Falta tu teléfono para avisarte de tu pedido.",
     delivery: "Falta elegir si lo recoges o te lo llevamos.",
     address: "Falta la dirección de entrega.",

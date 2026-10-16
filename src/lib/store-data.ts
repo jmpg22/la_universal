@@ -118,6 +118,7 @@ export async function getSettings(lang: Locale) {
     heroSubtitle: pick(lang, s.heroSubtitle, s.heroSubtitleEn),
     hours: pick(lang, s.hours, s.hoursEn),
     deliveryArea: pick(lang, s.deliveryArea, s.deliveryAreaEn),
+    chatWelcome: pick(lang, s.chatWelcome, s.chatWelcomeEn),
   };
 }
 

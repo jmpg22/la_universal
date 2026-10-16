@@ -40,6 +40,7 @@ export default async function StoreRootLayout({ children }: LayoutProps<"/[lang]
         <I18nProvider lang={lang}>
           <OrderChatProvider
             storeName={settings.storeName}
+            welcome={settings.chatWelcome}
             bank={{
               bankName: settings.bankName,
               bankAccountHolder: settings.bankAccountHolder,
