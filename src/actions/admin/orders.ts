@@ -21,7 +21,9 @@ export async function setOrderStatus(orderId: number, status: OrderStatus) {
     // Un pedido cancelado ya devolvió su mercancía; no se reabre para no descuadrar el inventario.
     if (order.status === "CANCELLED") throw new Error("El pedido ya está cancelado.");
 
-    await tx.order.update({ where: { id: orderId }, data: { status } });
+    // La fecha de entrega es cuando se cobra: es la que usa el corte de caja.
+    const deliveredAt = status === "DELIVERED" ? new Date() : order.status === "DELIVERED" ? null : undefined;
+    await tx.order.update({ where: { id: orderId }, data: { status, deliveredAt } });
 
     if (status === "CANCELLED") {
       for (const item of order.items) {

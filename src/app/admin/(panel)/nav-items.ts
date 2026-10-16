@@ -3,6 +3,7 @@ export const NAV = [
   { href: "/admin/pedidos", label: "Pedidos", icon: "🧾", badge: "orders" },
   { href: "/admin/whatsapp", label: "Conversaciones", icon: "💬" },
   { href: "/admin/mostrador", label: "Venta mostrador", icon: "💵" },
+  { href: "/admin/caja", label: "Corte de caja", icon: "🧮" },
   { href: "/admin/productos", label: "Productos", icon: "📦" },
   { href: "/admin/categorias", label: "Categorías", icon: "🏷️" },
   { href: "/admin/promociones", label: "Promociones", icon: "🎁" },

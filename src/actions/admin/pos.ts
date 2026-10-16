@@ -45,6 +45,7 @@ export async function registerCounterSale(input: z.input<typeof saleSchema>): Pr
         publicToken: randomBytes(18).toString("base64url"),
         channel: "COUNTER",
         status: "DELIVERED",
+        deliveredAt: new Date(),
         customerName: customerName || "Venta de mostrador",
         paymentMethod,
         cashGivenWith,

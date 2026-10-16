@@ -95,3 +95,81 @@ export function shortDay(key: string) {
 export function weekdayDay(key: string) {
   return weekdayLabel.format(startOfLocalDay(key));
 }
+
+export type PeriodKey = "hoy" | "semana" | "mes";
+
+function weekdayOf(key: string) {
+  // 0 = domingo, en la zona horaria de la tienda.
+  const short = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: TIME_ZONE }).format(startOfLocalDay(key));
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(short);
+}
+
+function daysInMonth(year: number, month: number) {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+/** Rango del periodo y el periodo anterior equivalente, para comparar. */
+export function periodRange(period: PeriodKey, today = todayKey()) {
+  if (period === "hoy") {
+    const y = addDays(today, -1);
+    return { from: today, to: today, prevFrom: y, prevTo: y, label: "Hoy", prevLabel: "ayer" };
+  }
+  if (period === "semana") {
+    const monday = addDays(today, -((weekdayOf(today) + 6) % 7));
+    return {
+      from: monday,
+      to: today,
+      prevFrom: addDays(monday, -7),
+      prevTo: addDays(today, -7),
+      label: "Esta semana",
+      prevLabel: "los mismos días de la semana pasada",
+    };
+  }
+  const [y, m, d] = today.split("-").map(Number);
+  const py = m === 1 ? y - 1 : y;
+  const pm = m === 1 ? 12 : m - 1;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    from: `${y}-${pad(m)}-01`,
+    to: today,
+    prevFrom: `${py}-${pad(pm)}-01`,
+    prevTo: `${py}-${pad(pm)}-${pad(Math.min(d, daysInMonth(py, pm)))}`,
+    label: "Este mes",
+    prevLabel: "los mismos días del mes pasado",
+  };
+}
+
+/** Rendimiento de cada producto en un rango: lo más vendido, lo que se vende poco y lo que no se vende. */
+export async function productPerformance(fromKey: string, toKey: string) {
+  const [products, items, lastSales] = await Promise.all([
+    db.product.findMany({
+      select: { id: true, name: true, stock: true, price: true, active: true, unit: true, category: { select: { name: true, emoji: true } } },
+    }),
+    db.orderItem.groupBy({
+      by: ["productId"],
+      where: {
+        productId: { not: null },
+        order: { status: { not: "CANCELLED" }, createdAt: { gte: startOfLocalDay(fromKey), lt: startOfLocalDay(addDays(toKey, 1)) } },
+      },
+      _sum: { quantity: true, lineTotal: true },
+      _count: { orderId: true },
+    }),
+    // Última venta de cada producto (de todos los tiempos).
+    db.$queryRawUnsafe<{ productId: number; lastSold: string }[]>(
+      `SELECT oi.productId AS productId, MAX(o.createdAt) AS lastSold
+       FROM OrderItem oi JOIN "Order" o ON o.id = oi.orderId
+       WHERE oi.productId IS NOT NULL AND o.status <> 'CANCELLED'
+       GROUP BY oi.productId`,
+    ),
+  ]);
+  const sold = new Map(items.map((i) => [i.productId!, { units: i._sum.quantity ?? 0, revenue: i._sum.lineTotal ?? 0, orders: i._count.orderId }]));
+  const last = new Map(lastSales.map((r) => [Number(r.productId), r.lastSold ? new Date(r.lastSold) : null]));
+
+  return products.map((p) => ({
+    ...p,
+    units: sold.get(p.id)?.units ?? 0,
+    revenue: sold.get(p.id)?.revenue ?? 0,
+    orders: sold.get(p.id)?.orders ?? 0,
+    lastSold: last.get(p.id) ?? null,
+  }));
+}

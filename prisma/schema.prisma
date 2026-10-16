@@ -120,11 +120,13 @@ model Order {
   deliveryFee    Int           @default(0)
   total          Int
   items         OrderItem[]
+  deliveredAt   DateTime? // cuándo se entregó (y se cobró); el corte de caja cuenta por esta fecha
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
   @@index([status, createdAt])
   @@index([createdAt])
+  @@index([deliveredAt])
   @@index([customerId])
 }
 
@@ -146,7 +148,7 @@ model Settings {
   storeName       String  @default("Abarrotes La Universal")
   tagline         String  @default("Todo lo de tu despensa, cerca de ti")
   announcement    String  @default("")
-  heroTitle       String  @default("Tu tiendita de confianza, ahora en línea")
+  heroTitle       String  @default("Todo lo que necesitas en un solo lugar")
   heroSubtitle    String  @default("Haz tu pedido y pásalo a recoger o te lo llevamos a casa.")
   phone           String  @default("")
   whatsapp        String  @default("")
@@ -279,4 +281,38 @@ model Promotion {
   weekdays       String    @default("") // "2,4" (0 = domingo); vacío = todos los días
   sortOrder      Int       @default(0)
   createdAt      DateTime  @default(now())
+}
+
+// Corte de caja: se abre con un fondo, se registran entradas/salidas de efectivo y se cierra contando.
+model CashSession {
+  id            Int            @id @default(autoincrement())
+  openedAt      DateTime       @default(now())
+  openedBy      String
+  openingCash   Int // fondo inicial (centavos)
+  closedAt      DateTime?
+  closedBy      String         @default("")
+  // Totales congelados al cerrar, para el historial
+  salesCount    Int?
+  salesCash     Int?
+  salesCard     Int?
+  salesTransfer Int?
+  discounts     Int?
+  expectedCash  Int? // fondo + ventas en efectivo + entradas − salidas
+  countedCash   Int? // lo que se contó al cerrar
+  difference    Int? // contado − esperado (positivo = sobrante)
+  notes         String         @default("")
+  movements     CashMovement[]
+}
+
+model CashMovement {
+  id        Int         @id @default(autoincrement())
+  sessionId Int
+  session   CashSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  kind      String // "IN" (entrada) | "OUT" (salida)
+  amount    Int
+  reason    String
+  createdBy String      @default("")
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId])
 }

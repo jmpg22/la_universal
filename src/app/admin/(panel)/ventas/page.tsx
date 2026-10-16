@@ -2,25 +2,16 @@ import type { Metadata } from "next";
 import Form from "next/form";
 import Link from "next/link";
 import { BarChart } from "@/components/admin/bar-chart";
-import { EmptyState, PageHeader, StatCard, StatusBadge } from "@/components/admin/ui";
+import { EmptyState, PageHeader, StatusBadge } from "@/components/admin/ui";
 import type { OrderChannel } from "@/generated/prisma/enums";
 import { requireAdmin } from "@/lib/auth";
-import { CHANNEL_LABEL, PAYMENT_LABEL, addDays, formatDateTime, formatMoney } from "@/lib/format";
-import { salesReport, shortDay, todayKey, weekdayDay } from "@/lib/sales";
+import { CHANNEL_LABEL, PAYMENT_LABEL, formatDateTime, formatMoney } from "@/lib/format";
+import { type PeriodKey, periodRange, salesReport, shortDay, todayKey, weekdayDay } from "@/lib/sales";
+import { SalesTabs } from "./sales-tabs";
 
 export const metadata: Metadata = { title: "Ventas" };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-function presets(today: string) {
-  return [
-    { label: "Hoy", from: today, to: today },
-    { label: "Ayer", from: addDays(today, -1), to: addDays(today, -1) },
-    { label: "7 días", from: addDays(today, -6), to: today },
-    { label: "30 días", from: addDays(today, -29), to: today },
-    { label: "Este mes", from: `${today.slice(0, 8)}01`, to: today },
-  ];
-}
 
 function ShareBars({ rows }: { rows: { label: string; total: number; count: number }[] }) {
   const max = Math.max(...rows.map((r) => r.total), 1);
@@ -43,16 +34,53 @@ function ShareBars({ rows }: { rows: { label: string; total: number; count: numb
   );
 }
 
+/** Tarjeta con el valor del periodo y la comparación contra el periodo anterior. */
+function CompareCard({ label, value, previous, format, prevLabel }: { label: string; value: number; previous: number; format: (n: number) => string; prevLabel: string }) {
+  const diff = value - previous;
+  const pct = previous > 0 ? Math.round((diff / previous) * 100) : null;
+  const up = diff > 0;
+  return (
+    <div className="card p-4">
+      <p className="text-sm font-semibold text-stone-500">{label}</p>
+      <p className="mt-1 text-2xl font-extrabold text-stone-900 tabular-nums">{format(value)}</p>
+      <p className="mt-1 text-xs text-stone-500">
+        {diff === 0 ? (
+          <span className="font-bold text-stone-500">= igual</span>
+        ) : (
+          <span className={`font-bold ${up ? "text-brand-700" : "text-red-600"}`}>
+            {up ? "▲" : "▼"} {format(Math.abs(diff))}
+            {pct != null && ` (${up ? "+" : "−"}${Math.abs(pct)}%)`}
+          </span>
+        )}{" "}
+        vs {prevLabel} ({format(previous)})
+      </p>
+    </div>
+  );
+}
+
 export default async function SalesPage({ searchParams }: PageProps<"/admin/ventas">) {
   await requireAdmin();
   const params = await searchParams;
   const today = todayKey();
-  let from = typeof params.desde === "string" && DATE_RE.test(params.desde) ? params.desde : addDays(today, -6);
-  let to = typeof params.hasta === "string" && DATE_RE.test(params.hasta) ? params.hasta : today;
-  if (from > to) [from, to] = [to, from];
   const channel = params.canal === "ONLINE" || params.canal === "COUNTER" || params.canal === "WHATSAPP" ? (params.canal as OrderChannel) : undefined;
 
-  const report = await salesReport(from, to, channel);
+  // Periodo: hoy / semana / mes, o un rango con "desde" y "hasta".
+  const custom = params.periodo === "rango" || (typeof params.desde === "string" && DATE_RE.test(params.desde));
+  const periodKey: PeriodKey = params.periodo === "semana" || params.periodo === "mes" ? params.periodo : "hoy";
+  let from: string, to: string, prevFrom: string, prevTo: string, prevLabel: string;
+  if (custom) {
+    from = typeof params.desde === "string" && DATE_RE.test(params.desde) ? params.desde : today;
+    to = typeof params.hasta === "string" && DATE_RE.test(params.hasta) ? params.hasta : today;
+    if (from > to) [from, to] = [to, from];
+    const days = Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000) + 1;
+    prevTo = new Date(Date.parse(from) - 86_400_000).toISOString().slice(0, 10);
+    prevFrom = new Date(Date.parse(from) - days * 86_400_000).toISOString().slice(0, 10);
+    prevLabel = "el periodo anterior";
+  } else {
+    ({ from, to, prevFrom, prevTo, prevLabel } = periodRange(periodKey, today));
+  }
+
+  const [report, previous] = await Promise.all([salesReport(from, to, channel), salesReport(prevFrom, prevTo, channel)]);
   const singleDay = from === to;
   const qs = (extra: Record<string, string | undefined>) => {
     const sp = new URLSearchParams();
@@ -64,6 +92,8 @@ export default async function SalesPage({ searchParams }: PageProps<"/admin/vent
   const online = report.byChannel.get("ONLINE") ?? { total: 0, count: 0 };
   const whatsapp = report.byChannel.get("WHATSAPP") ?? { total: 0, count: 0 };
   const counter = report.byChannel.get("COUNTER") ?? { total: 0, count: 0 };
+  const money = (n: number) => formatMoney(n);
+  const plain = (n: number) => new Intl.NumberFormat("es-MX").format(n);
 
   return (
     <>
@@ -76,22 +106,11 @@ export default async function SalesPage({ searchParams }: PageProps<"/admin/vent
           </a>
         }
       />
+      <SalesTabs current={custom ? "rango" : periodKey} />
 
-      <div className="card mb-6 flex flex-wrap items-end gap-3 p-4">
-        <div className="flex flex-wrap gap-2">
-          {presets(today).map((p) => (
-            <Link
-              key={p.label}
-              href={`/admin/ventas${qs({ desde: p.from, hasta: p.to })}`}
-              className={`rounded-full px-3 py-1.5 text-sm font-bold ring-1 ${
-                p.from === from && p.to === to ? "bg-brand-600 text-white ring-brand-600" : "bg-white text-stone-600 ring-stone-200 hover:ring-stone-300"
-              }`}
-            >
-              {p.label}
-            </Link>
-          ))}
-        </div>
-        <Form action="/admin/ventas" className="flex flex-wrap items-end gap-2">
+      {custom && (
+        <Form action="/admin/ventas" className="card mb-6 flex flex-wrap items-end gap-2 p-4">
+          <input type="hidden" name="periodo" value="rango" />
           <div>
             <label htmlFor="desde" className="label text-xs">Desde</label>
             <input id="desde" name="desde" type="date" defaultValue={from} max={today} className="input py-1.5" />
@@ -113,13 +132,29 @@ export default async function SalesPage({ searchParams }: PageProps<"/admin/vent
             Ver
           </button>
         </Form>
-      </div>
+      )}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Vendido" value={formatMoney(report.total)} hint={report.deliveryFees ? `Incluye ${formatMoney(report.deliveryFees)} de envíos` : undefined} />
-        <StatCard label="Ventas" value={String(report.count)} />
-        <StatCard label="Ticket promedio" value={formatMoney(report.average)} />
-        <StatCard label="Web / WhatsApp / mostrador" value={`${online.count} / ${whatsapp.count} / ${counter.count}`} hint={`${formatMoney(online.total)} / ${formatMoney(whatsapp.total)} / ${formatMoney(counter.total)}`} />
+        <CompareCard label="Vendido" value={report.total} previous={previous.total} format={money} prevLabel={prevLabel} />
+        <CompareCard label="Número de ventas" value={report.count} previous={previous.count} format={plain} prevLabel={prevLabel} />
+        <CompareCard label="Ticket promedio" value={report.average} previous={previous.average} format={money} prevLabel={prevLabel} />
+        <div className="card p-4">
+          <p className="text-sm font-semibold text-stone-500">Por canal</p>
+          <ul className="mt-1 space-y-0.5 text-sm">
+            <li className="flex justify-between">
+              <span>🌐 Web</span>
+              <span className="font-bold tabular-nums">{formatMoney(online.total)}</span>
+            </li>
+            <li className="flex justify-between">
+              <span>💬 WhatsApp</span>
+              <span className="font-bold tabular-nums">{formatMoney(whatsapp.total)}</span>
+            </li>
+            <li className="flex justify-between">
+              <span>🏪 Mostrador</span>
+              <span className="font-bold tabular-nums">{formatMoney(counter.total)}</span>
+            </li>
+          </ul>
+        </div>
       </div>
 
       {report.count === 0 ? (
@@ -167,7 +202,12 @@ export default async function SalesPage({ searchParams }: PageProps<"/admin/vent
 
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
             <section className="card overflow-hidden">
-              <h2 className="px-5 pt-4 pb-2 font-extrabold">Productos más vendidos</h2>
+              <div className="flex items-baseline justify-between px-5 pt-4 pb-2">
+                <h2 className="font-extrabold">Productos más vendidos</h2>
+                <Link href={`/admin/ventas/productos${qs({})}`} className="text-sm font-bold text-brand-700 hover:underline">
+                  Ver todos y lo que no se vende →
+                </Link>
+              </div>
               <table className="w-full text-sm">
                 <thead className="text-left text-xs font-bold tracking-wide text-stone-500 uppercase">
                   <tr>
@@ -219,7 +259,11 @@ export default async function SalesPage({ searchParams }: PageProps<"/admin/vent
         </>
       )}
       <p className="mt-6 text-xs text-stone-500">
-        Se cuentan todos los pedidos excepto los <StatusBadge status="CANCELLED" />. Los pedidos web y de WhatsApp cuentan desde que se reciben.
+        Se cuentan todos los pedidos excepto los <StatusBadge status="CANCELLED" />, por la fecha en que se recibieron. El{" "}
+        <Link href="/admin/caja" className="underline">
+          corte de caja
+        </Link>{" "}
+        cuenta por la fecha en que se entregaron y cobraron.
       </p>
     </>
   );
